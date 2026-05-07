@@ -41,9 +41,16 @@ env/
 # Testing
 .pytest_cache/
 .pytest_tmp/
+.pytest_tmp*/
 .pytest_tmp_agent_pilot_api/
+.tmp_pytest/
+.tmp_pytest*
 .tmp_pytest_agent_api/
+.pytest_tmp_manual/
+.pytest_tmp_manual/*
 pytest_tmp_api/
+.pytest_tmp
+.tmp_pytest
 .coverage
 htmlcov/
 .tox/
@@ -87,6 +94,8 @@ clients/agent_pilot_cockpit/vite.config.d.ts
 .flutter-plugins
 .flutter-plugins-dependencies
 .flutter_tool_state
+!clients/agent_pilot_flutter/lib/
+!clients/agent_pilot_flutter/lib/**
 
 # Pyright
 pyrightconfig.json
