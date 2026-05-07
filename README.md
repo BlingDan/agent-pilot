@@ -1,127 +1,130 @@
-<div align="center">
-  <img src="./assets/img/agent-pilot.png" alt="Agent-Pilot hero image" width="100%" />
-  <h1>Agent-Pilot</h1>
-  <h3>基于 IM 的办公协同智能助手</h3>
-  <p><em>从飞书/Lark IM 对话到文档、汇报材料与画板的一键智能闭环</em></p>
-  <p>
-    <img src="https://img.shields.io/github/stars/BlingDan/job-research-interview-agent?style=flat&logo=github" alt="GitHub stars" />
-    <img src="https://img.shields.io/github/forks/BlingDan/job-research-interview-agent?style=flat&logo=github" alt="GitHub forks" />
-    <img src="https://img.shields.io/badge/platform-Feishu%20%2F%20Lark-3370ff?style=flat" alt="Feishu/Lark platform" />
-    <img src="https://img.shields.io/badge/language-Chinese-brightgreen?style=flat" alt="Language" />
-    <img src="https://img.shields.io/badge/backend-FastAPI-009688?style=flat&logo=fastapi" alt="FastAPI" />
-  </p>
-</div>
+﻿# Agent-Pilot
+
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)  ![FastAPI](https://img.shields.io/badge/FastAPI-005571.svg?logo=fastapi&logoColor=white)  ![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)  ![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)  ![Lark](https://img.shields.io/badge/Lark-FF6A00?logo=slack&logoColor=white)
 
 ## 项目简介
 
-Agent-Pilot 是面向飞书/Lark 的办公协同智能助手，围绕飞书/Lark IM 的核心交互场景展开。用户在 IM 中提出目标，Agent 理解任务、规划步骤、生成办公产物，并把结果回传到同一个会话。
+Agent-Pilot 是一个以 **Feishu/Lark IM 为入口** 的多智能体协作助手。
+它将 IM 指令转化为可编排任务流，并通过 `planner / doc / presentation / canvas / delivery` 等 Agent 实现从需求理解、内容生成到结果回传的闭环。
 
-当前这轮重构围绕参赛要求中的 `IM 入口`、`多端同步` 和 `Agent 主驾驶` 继续收口。仓库主线已经从旧研究项目语义切换到新的 `Agent-Pilot` 骨架：`IM` 负责入口，`Web cockpit` 负责观察与有限干预，`Windows + Android` 作为真实产品端骨架，共享同一任务状态。
+项目同时提供两类可操作界面：
 
-核心链路：
+- **Web Cockpit**：任务总览与 Artifact 详情查看
+- **Mobile & Windows Clients**：用于移动端/桌面端协作入口
 
-```text
-Feishu / Lark IM
--> Agent 意图捕获
--> 任务理解与计划
--> 文档 / 幻灯片 / 画板生成
--> 同一任务状态跨端同步
--> IM 会话交付与后续修改
-```
+该系统的目标是：
+
+- 降低 IM 自动化流程的上手成本
+- 减少跨渠道人工切换，提高任务处理效率
+- 在统一的任务语义下支撑不同客户端的一致体验
+
+---
+
+## 解决的问题
+
+- IM 场景下重复劳动高、流程切换多
+- 任务结果分散在消息、文档、PPT、Canvas 中无法统一管理
+- 多终端状态不一致导致协作效率下降
+- 缺少可审计的任务生命周期与回溯能力
+
+Agent-Pilot 通过统一任务模型和多表面适配层，将以上问题收敛到一条可追踪的任务链路。
+
+---
 
 ## 核心能力
 
-- **IM 原生入口**：支持群聊或私聊中的自然语言任务发起。
-- **Agent 任务规划**：Planner Agent 将目标拆解为可执行步骤和工具调用计划。
-- **办公套件联动**：生成飞书 Doc、Slides、Canvas/Whiteboard 等交付物。
-- **多端协同体验**：IM、cockpit、Windows、Android 围绕同一任务状态协同。
-- **进度与修改闭环**：支持 `当前进度`、`确认`、`修改：...`、`/reset` 等交互。
-- **演示稳定性**：官方 MCP、`lark-cli`、fake artifact 多层 fallback，保障演示和实际使用的稳定性。
+- 智能任务编排：接收 IM 指令并生成可执行任务计划
+- 多 Agent 分工：
+  - `intent_router_agent`：意图识别与路由
+  - `agent_pilot_planner`：任务拆解与执行计划
+  - `doc_agent` / `canvas_agent` / `presentation_agent`：内容与展示产物生成
+  - `assistant` / `runtime`：执行编排与状态推进
+- 统一状态与快照：`shared` 与 `app.shared.state_service` 管理任务生命周期
+- 分层消息入出口：IM、Windows、Mobile、Cockpit 各自独立 surface
+- 兼容替代交互：dry-run 模式与 fallback 客户端，支持本地化调试
 
-## 功能场景
+---
 
-| 场景 | 场景说明 | Agent-Pilot 对应实现 |
-| --- | --- | --- |
-| A | 意图 / 指令入口 | 飞书 IM 消息触发 Agent-Pilot 任务 |
-| B | 任务理解和规划 | Planner Agent 生成执行计划与 ToolPlan |
-| C | 文档 / 白板生成 | DocAgent 与 CanvasAgent 生成方案文档和架构画板 |
-| D | 汇报材料生成 | PresentationAgent 生成 5 页项目汇报 Slides |
-| E | 多端协同 | 同一 `task_id` 在 IM、cockpit、Windows、Android 间连续推进 |
-| F | 总结与交付 | DeliveryService 将最终成果回传到同一 IM 会话 |
-
-## 当前骨架进展
-
-- 后端：`FastAPI`，按 `assistant / shared / surfaces / integrations` 重组。
-- cockpit：`React + Vite` 工程已初始化，接入新的 `/api/cockpit/*` 与 websocket 契约。
-- 真实端：`Flutter` 工程骨架已初始化，覆盖 `Windows + Android` 的共享状态模型。
-- IM：保留 Feishu/Lark 入口与适配器，但上层语义提升为 `IM-first`，不再把飞书当唯一 UI。
-- 旧研究域：`task / report / search / summarizer / rag` 主链路已移出，仓库主线只保留 `Agent-Pilot` 语义。
-
-## 仓库结构
+## 目录结构
 
 ```text
 app/
-  assistant/            Unified assistant runtime and orchestration
-  shared/               Shared task models, snapshots, event bus, persistence wrappers
-  surfaces/
-    im/                 IM command and event ingress
-    assistant/          Assistant task actions
-    cockpit/            Web cockpit query and websocket surface
-    windows/            Windows surface API
-    mobile/             Mobile surface API
-  integrations/
-    feishu/             Feishu/Lark adapter exports
-    artifacts/          Artifact fallback and tool-layer exports
+  assistant/            统一的运行与编排入口（runtime / orchestrator）
+  agents/               多 Agent 协作与职责划分
+  core/                通用配置与应用启动配置
+  integrations/        第三方平台接入（Lark/Feishu + artifact 工具层）
+  schemas/             请求/响应与状态 schema
+  services/            任务构建、交付与聚合服务
+  shared/              通用模型、快照、状态服务
+  surfaces/            多表面入口（IM / Web cockpit / Mobile / Windows）
+
 clients/
-  agent_pilot_cockpit/  React + Vite cockpit
-  agent_pilot_flutter/  Flutter shell for Windows + Android
+  agent_pilot_cockpit/ 基于 React + Vite 的 Web cockpit
+  agent_pilot_flutter/ Flutter 客户端（Windows + Android）
+
 docs/
-  agent_pilot_architecture.md
-  agent_pilot_demo.md
+  PLAN.md
+  Record.md
+
+scripts/
+  start_agent_pilot_dev.ps1
+
+tests/
+  pytest 套件（按模块覆盖 agents / orchestrator / services / surfaces）
 ```
 
-## 主要接口
+---
 
-- `POST /api/im/commands`
-- `POST /api/im/events`
-- `GET /api/assistant/tasks/{task_id}`
-- `POST /api/assistant/tasks/{task_id}/actions/confirm`
-- `POST /api/assistant/tasks/{task_id}/actions/revise`
-- `POST /api/assistant/tasks/{task_id}/actions/reset`
-- `GET /api/cockpit/tasks`
-- `GET /api/cockpit/tasks/{task_id}`
-- `GET /api/cockpit/tasks/{task_id}/artifacts/{kind}`
-- `WS /api/cockpit/ws/tasks`
-- `WS /api/cockpit/ws/tasks/{task_id}`
-- `GET /api/windows/home`
-- `GET /api/windows/tasks/{task_id}`
-- `GET /api/mobile/home`
-- `GET /api/mobile/tasks/{task_id}`
+## 运行前提与环境变量
 
-## 快速开始
+建议先准备：
+
+- Python 3.11+
+- Node.js 18+
+- Flutter SDK（若启动移动/桌面客户端）
+- 可用的 IM Bot 配置（Feishu/Lark）
+
+项目默认使用 `.env` 管理运行参数。示例变量（请按实际环境配置）：
+
+- `FEISHU_APP_ID`
+- `FEISHU_APP_SECRET`
+- `OPENAI_API_KEY` 或兼容 OpenAI 的模型服务密钥
+- `AGENT_PILOT_AI_MODEL`
+- `AGENT_PILOT_MAX_RETRIES`
+
+示例：`cp .env .env.local` 后按需修改。
+
+> 注意：请避免提交含敏感信息的 `.env`。
+
+---
+
+## 快速启动
+
+### 1) 后端服务
 
 ```bash
-uv run pytest
-uv run uvicorn app.main:app --reload
+# 安装依赖
+pip install -r requirements.txt
+
+# 启动 API 服务
+uvicorn app.main:app --reload
 ```
 
-启动飞书 IM 事件监听：
+### 2) IM 事件监听（可选）
 
 ```bash
-uv run python scripts/lark_event_listener.py
+python scripts/lark_event_listener.py
 ```
 
-启动 cockpit：
+### 3) Web Cockpit
 
 ```bash
 cd clients/agent_pilot_cockpit
-bun install
-bun run dev
+npm install
+npm run dev
 ```
 
-如果已经构建过静态产物，也可以直接访问后端根路径；`app.main` 会优先托管 `clients/agent_pilot_cockpit/dist`。
-
-Flutter 骨架：
+### 4) Flutter（Windows）
 
 ```bash
 cd clients/agent_pilot_flutter
@@ -129,35 +132,101 @@ flutter pub get
 flutter run -d windows
 ```
 
-如果本机没有安装 Flutter，当前仓库仍然保留完整骨架与共享 API 契约，可在安装 Flutter 后直接接续。
+### 5) Flutter（Android 调试）
 
-推荐演示口令：
-
-```text
-@Agent 帮我生成一份产品方案文档和 5 页项目汇报材料。重点突出 Agent 编排、多端协同、飞书办公套件联动和工程实现。
+```bash
+adb devices
+adb reverse tcp:8000 tcp:8000
+flutter run -d <device> --dart-define=AGENT_PILOT_API_BASE=http://127.0.0.1:8000
 ```
 
-## 技术栈
+### 6) 一键脚本
 
-- Python / FastAPI
-- React + Vite
-- Flutter
-- Feishu/Lark `lark-cli`
-- Official Feishu MCP Tool Layer
-- OpenAI-compatible LLM endpoint
-- pytest
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\start_agent_pilot_dev.ps1 -StartAndroid -StartScrcpy
+```
 
-## 文档
+---
 
-- [演示与运行指南](./docs/agent_pilot_demo.md)
-- [架构文档](./docs/agent_pilot_architecture.md)
-- [重构设计文档](./docs/superpowers/specs/2026-04-26-agent-pilot-refactor-design.md)
-- [Feishu MCP Tool Layer 设计](./docs/superpowers/specs/2026-04-27-feishu-mcp-tool-layer-design.md)
+## 主要 API（摘录）
 
-## 实现原则
+### IM Surface
 
-- `IM` 是规定入口，不被网页端替代。
-- `Web cockpit` 是操盘面，不升级成普通用户主端。
-- `Windows + Android` 走“共享骨架 + 端差异”路线。
-- 优先保证任务状态一致，再扩展复杂内容协同。
-- 优先采用主流框架：`FastAPI`、`React + Vite`、`Flutter`。
+- `POST /api/im/commands`
+- `POST /api/im/events`
+
+### Assistant / Assistant Task
+
+- `GET /api/assistant/tasks/{task_id}`
+- `POST /api/assistant/tasks/{task_id}/actions/confirm`
+- `POST /api/assistant/tasks/{task_id}/actions/revise`
+- `POST /api/assistant/tasks/{task_id}/actions/reset`
+
+### Cockpit Surface
+
+- `GET /api/cockpit/tasks`
+- `GET /api/cockpit/tasks/{task_id}`
+- `GET /api/cockpit/tasks/{task_id}/artifacts/{kind}`
+- `WS /api/cockpit/ws/tasks`
+- `WS /api/cockpit/ws/tasks/{task_id}`
+
+### Mobile / Windows Surface
+
+- `GET /api/windows/home`
+- `GET /api/windows/tasks/{task_id}`
+- `GET /api/mobile/home`
+- `GET /api/mobile/tasks/{task_id}`
+
+---
+
+## 清理与维护
+
+### 建议清理命令
+
+```bash
+# 删除测试遗留临时目录（已在 .gitignore 中覆盖）
+Remove-Item -Recurse -Force .pytest_tmp_manual
+
+# 检查未跟踪文件
+git status --short
+```
+
+### .gitignore 策略
+
+本仓库在 `.gitignore` 中统一忽略：
+
+- Python 编译缓存与虚拟环境
+- Node/Flutter 依赖与构建产物
+- pytest 临时目录（含新增的 `*.tmp` 临时族）
+- 日志、OS 元数据与 IDE 文件
+
+---
+
+## 测试
+
+```bash
+pytest
+# 或按模块执行
+pytest tests/test_agent_pilot_orchestrator.py
+```
+
+---
+
+## 开发约定
+
+- 约定职责边界：`agent` 负责业务行为，`service` 负责组合编排，`shared` 仅提供稳定公共能力。
+- 接口变更优先更新对应 `schemas` 与 `tests`。
+- 新增 surface 时，优先补齐对应测试文件和文档。
+
+---
+
+## 开源与贡献
+
+欢迎提交 Issue / PR 改进以下方向：
+
+- Agent 能力扩展与优化
+- Feishu/Lark 平台能力增强
+- Cockpit 观测性与交互优化
+- 多端同步体验与离线策略
+
+
